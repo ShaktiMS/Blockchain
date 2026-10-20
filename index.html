@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drug Supply Chain DApp</title>
+
+    <!-- Ethers.js v6 -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f5f9;
+        color: #202938;
+      }
+
+      header {
+        background: #16243a;
+        color: white;
+        padding: 24px;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0 0 8px;
+      }
+
+      header p {
+        margin: 0;
+        color: #d4deed;
+      }
+
+      main {
+        width: min(1000px, 94%);
+        margin: 24px auto;
+      }
+
+      .panel {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px #0000000c;
+      }
+
+      h2 {
+        margin-top: 0;
+        font-size: 20px;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .status {
+        padding: 12px;
+        background: #edf2f7;
+        border-radius: 8px;
+        margin-top: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .success {
+        background: #e8f7ed;
+        color: #176536;
+      }
+
+      .error {
+        background: #ffeded;
+        color: #9c2424;
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin: 12px 0 6px;
+      }
+
+      input {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #cbd3df;
+        border-radius: 7px;
+        font-size: 15px;
+      }
+
+      button {
+        border: 0;
+        padding: 11px 15px;
+        border-radius: 7px;
+        background: #2856c5;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 12px;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        background: #475569;
+      }
+
+      .danger {
+        background: #a83232;
+      }
+
+      .result {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #f5f7fb;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 12px;
+        line-height: 1.6;
+      }
+
+      .hint {
+        color: #58677b;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      a {
+        overflow-wrap: anywhere;
+      }
+
+      footer {
+        text-align: center;
+        color: #64748b;
+        padding: 20px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Drug Supply Chain DApp</h1>
+      <p>MetaMask + Solidity + Ethereum Sepolia</p>
+    </header>
+
+    <main>
+      <!-- 1. Wallet connection -->
+      <section class="panel">
+        <h2>1. Wallet Connection</h2>
+
+        <div class="row">
+          <button id="connectBtn">Connect MetaMask</button>
+          <button id="switchBtn" class="secondary">Switch to Sepolia</button>
+        </div>
+
+        <div id="walletStatus" class="status">Wallet not connected.</div>
+
+        <div id="networkStatus" class="status">Network not checked.</div>
+
+        <div id="balanceStatus" class="status">Balance not loaded.</div>
+
+        <p class="hint">
+          Connect your wallet and make sure the active network is Sepolia (chain
+          ID 11155111).
+        </p>
+      </section>
+
+      <!-- 2. Contract information -->
+      <section class="panel">
+        <h2>2. Smart Contract</h2>
+
+        <div id="contractStatus" class="status">Contract not initialized.</div>
+
+        <button id="checkContractBtn" class="secondary">
+          Check Contract Connection
+        </button>
+      </section>
+
+      <!-- 3. Manufacture drug -->
+      <section class="panel">
+        <h2>3. Manufacture a Drug</h2>
+
+        <label for="drugId">Drug ID (positive integer)</label>
+        <input
+          id="drugId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="e.g. 101"
+        />
+
+        <label for="drugName">Drug Name</label>
+        <input id="drugName" type="text" placeholder="e.g. Paracetamol" />
+
+        <label for="expiryDate">Expiry Date</label>
+        <input id="expiryDate" type="date" />
+
+        <button id="manufactureBtn">Register Drug</button>
+
+        <div id="manufactureResult" class="result">
+          No transaction submitted.
+        </div>
+      </section>
+
+      <!-- 4. Send to distributor -->
+      <section class="panel">
+        <h2>4. Send Drug to Distributor</h2>
+
+        <label for="distDrugId">Drug ID</label>
+        <input
+          id="distDrugId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="e.g. 101"
+        />
+
+        <label for="distributorAddress">Distributor Wallet Address</label>
+        <input id="distributorAddress" type="text" placeholder="0x..." />
+
+        <button id="distributorBtn">Transfer to Distributor</button>
+
+        <div id="distributorResult" class="result">
+          No transaction submitted.
+        </div>
+      </section>
+
+      <!-- 5. Send to retailer -->
+      <section class="panel">
+        <h2>5. Send Drug to Retailer</h2>
+
+        <label for="retailDrugId">Drug ID</label>
+        <input
+          id="retailDrugId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="e.g. 101"
+        />
+
+        <label for="retailerAddress">Retailer Wallet Address</label>
+        <input id="retailerAddress" type="text" placeholder="0x..." />
+
+        <button id="retailerBtn">Transfer to Retailer</button>
+
+        <div id="retailerResult" class="result">No transaction submitted.</div>
+      </section>
+
+      <!-- 6. Sell to customer -->
+      <section class="panel">
+        <h2>6. Sell Drug to Customer</h2>
+
+        <label for="saleDrugId">Drug ID</label>
+        <input
+          id="saleDrugId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="e.g. 101"
+        />
+
+        <label for="customerAddress">Customer Wallet Address</label>
+        <input id="customerAddress" type="text" placeholder="0x..." />
+
+        <button id="sellBtn">Sell to Customer</button>
+
+        <div id="sellResult" class="result">No transaction submitted.</div>
+      </section>
+
+      <!-- 7. Read the blockchain -->
+      <section class="panel">
+        <h2>7. Retrieve Drug Details</h2>
+
+        <label for="lookupDrugId">Drug ID</label>
+        <input
+          id="lookupDrugId"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="e.g. 101"
+        />
+
+        <button id="lookupBtn" class="secondary">Get Drug Details</button>
+
+        <div id="lookupResult" class="result">No drug queried.</div>
+      </section>
+
+      <!-- 8. General status -->
+      <section class="panel">
+        <h2>8. Application Log</h2>
+        <div id="appLog" class="result">DApp initialized.</div>
+      </section>
+    </main>
+
+    <footer>
+      Educational demonstration on Ethereum Sepolia testnet. Never use real
+      funds for this experiment.
+    </footer>
+
+    <script>
+      // ==========================================================
+      // CONFIGURATION: REPLACE THESE TWO PLACEHOLDERS
+      // ==========================================================
+
+      const CONTRACT_ADDRESS = "0xAed3b4018f6dFFcA7585baa1675f09a9Da6d62Ed";
+
+      // Replace this with the ABI copied from Remix.
+      const CONTRACT_ABI = [
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "drugID",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "name",
+              type: "string",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "manufacturer",
+              type: "address",
+            },
+          ],
+          name: "DrugManufactured",
+          type: "event",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_drugID",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "_name",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "_expiryDate",
+              type: "uint256",
+            },
+          ],
+          name: "manufactureDrug",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_drugID",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "_customer",
+              type: "address",
+            },
+          ],
+          name: "sellToCustomer",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_drugID",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "_distributor",
+              type: "address",
+            },
+          ],
+          name: "sendToDistributor",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_drugID",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "_retailer",
+              type: "address",
+            },
+          ],
+          name: "sendToRetailer",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "drugID",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "distributor",
+              type: "address",
+            },
+          ],
+          name: "SentToDistributor",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "drugID",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "retailer",
+              type: "address",
+            },
+          ],
+          name: "SentToRetailer",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "drugID",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "customer",
+              type: "address",
+            },
+          ],
+          name: "SoldToCustomer",
+          type: "event",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "drugs",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "drugID",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "name",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "expiryDate",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "manufacturer",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "distributor",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "retailer",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "customer",
+              type: "address",
+            },
+            {
+              internalType: "enum DrugSupplyChain.Stage",
+              name: "stage",
+              type: "uint8",
+            },
+            {
+              internalType: "uint256",
+              name: "lastUpdated",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_drugID",
+              type: "uint256",
+            },
+          ],
+          name: "getDrug",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "drugID",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "name",
+                  type: "string",
+                },
+                {
+                  internalType: "uint256",
+                  name: "expiryDate",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "manufacturer",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "distributor",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "retailer",
+                  type: "address",
+                },
+                {
+                  internalType: "address",
+                  name: "customer",
+                  type: "address",
+                },
+                {
+                  internalType: "enum DrugSupplyChain.Stage",
+                  name: "stage",
+                  type: "uint8",
+                },
+                {
+                  internalType: "uint256",
+                  name: "lastUpdated",
+                  type: "uint256",
+                },
+              ],
+              internalType: "struct DrugSupplyChain.Drug",
+              name: "",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ];
+
+      const SEPOLIA_CHAIN_ID = "0xaa36a7";
+      const SEPOLIA_DECIMAL_ID = 11155111;
+
+      // ==========================================================
+      // APPLICATION STATE
+      // ==========================================================
+
+      let provider = null;
+      let signer = null;
+      let contract = null;
+      let connectedAccount = null;
+
+      const $ = (id) => document.getElementById(id);
+
+      function log(message) {
+        const time = new Date().toLocaleTimeString();
+        $("appLog").textContent = `[${time}] ${message}`;
+      }
+
+      function showResult(id, message, type = "") {
+        const el = $(id);
+        el.textContent = message;
+        el.className = "result" + (type ? " " + type : "");
+      }
+
+      function showStatus(id, message, type = "") {
+        const el = $(id);
+        el.textContent = message;
+        el.className = "status" + (type ? " " + type : "");
+      }
+
+      function explainError(error) {
+        if (error?.code === 4001) {
+          return "Request rejected in MetaMask.";
+        }
+
+        if (error?.code === 4902) {
+          return "Sepolia is not added to MetaMask. Add it in the wallet settings.";
+        }
+
+        if (error?.code === -32002) {
+          return "A wallet request is already pending. Open MetaMask and finish it.";
+        }
+
+        const message =
+          error?.shortMessage ||
+          error?.reason ||
+          error?.message ||
+          "Unknown error";
+
+        return message.length > 500 ? message.slice(0, 500) + "..." : message;
+      }
+
+      function requireWallet() {
+        if (!window.ethereum) {
+          throw new Error(
+            "MetaMask was not detected. Install or enable the browser extension.",
+          );
+        }
+
+        if (!signer || !connectedAccount) {
+          throw new Error("Connect MetaMask before performing this action.");
+        }
+      }
+
+      function requireSepolia() {
+        if (!provider) {
+          throw new Error("Connect MetaMask first.");
+        }
+
+        if (!contract) {
+          throw new Error(
+            "Contract is not initialized. Check the address and ABI.",
+          );
+        }
+
+        if (!window.ethereum) {
+          throw new Error("MetaMask provider is unavailable.");
+        }
+      }
+
+      async function ensureSepolia() {
+        requireWallet();
+
+        const currentChain = await window.ethereum.request({
+          method: "eth_chainId",
+        });
+
+        if (currentChain.toLowerCase() !== SEPOLIA_CHAIN_ID) {
+          throw new Error(
+            "Wrong network. Switch MetaMask to Ethereum Sepolia.",
+          );
+        }
+      }
+
+      function validateContractConfig() {
+        if (!ethers.isAddress(CONTRACT_ADDRESS)) {
+          throw new Error(
+            "Replace CONTRACT_ADDRESS with your actual deployed address.",
+          );
+        }
+
+        if (!Array.isArray(CONTRACT_ABI) || CONTRACT_ABI.length === 0) {
+          throw new Error(
+            "Paste the complete DrugSupplyChain ABI into CONTRACT_ABI.",
+          );
+        }
+      }
+
+      async function refreshWalletDetails() {
+        if (!provider || !connectedAccount) return;
+
+        const network = await provider.getNetwork();
+        const balance = await provider.getBalance(connectedAccount);
+
+        $("networkStatus").textContent =
+          `Network: ${network.name} | Chain ID: ${network.chainId}`;
+
+        $("balanceStatus").textContent =
+          `Wallet balance: ${ethers.formatEther(balance)} Sepolia ETH`;
+
+        if (network.chainId === BigInt(SEPOLIA_DECIMAL_ID)) {
+          showStatus(
+            "networkStatus",
+            "Connected to Ethereum Sepolia (chain ID 11155111).",
+            "success",
+          );
+        } else {
+          showStatus(
+            "networkStatus",
+            `Wrong network. Current chain ID: ${network.chainId}. Switch to Sepolia.`,
+            "error",
+          );
+        }
+      }
+
+      // ==========================================================
+      // CONNECT WALLET
+      // ==========================================================
+
+      async function connectWallet() {
+        if (!window.ethereum) {
+          alert("MetaMask is not installed or is not enabled.");
+          return;
+        }
+
+        $("connectBtn").disabled = true;
+
+        try {
+          const accounts = await window.ethereum.request({
+            method: "eth_requestAccounts",
+          });
+
+          if (!accounts.length) {
+            throw new Error("No account was authorized.");
+          }
+
+          connectedAccount = accounts[0];
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+
+          validateContractConfig();
+
+          contract = new ethers.Contract(
+            CONTRACT_ADDRESS,
+            CONTRACT_ABI,
+            signer,
+          );
+
+          showStatus(
+            "walletStatus",
+            `Connected wallet: ${connectedAccount}`,
+            "success",
+          );
+
+          await refreshWalletDetails();
+
+          showStatus(
+            "contractStatus",
+            `Contract configured: ${CONTRACT_ADDRESS}`,
+            "success",
+          );
+
+          log("Wallet connected and contract interface initialized.");
+        } catch (error) {
+          showStatus("walletStatus", explainError(error), "error");
+          log("Connection error: " + explainError(error));
+        } finally {
+          $("connectBtn").disabled = false;
+        }
+      }
+
+      // ==========================================================
+      // SWITCH TO SEPOLIA
+      // ==========================================================
+
+      async function switchToSepolia() {
+        if (!window.ethereum) {
+          alert("MetaMask is not installed or is not enabled.");
+          return;
+        }
+
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: SEPOLIA_CHAIN_ID }],
+          });
+
+          log("Requested switch to Sepolia.");
+
+          if (connectedAccount) {
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            await refreshWalletDetails();
+          }
+        } catch (error) {
+          if (error.code === 4902) {
+            showStatus(
+              "networkStatus",
+              "Sepolia is not configured in MetaMask. Add the Sepolia network first.",
+              "error",
+            );
+          } else {
+            showStatus("networkStatus", explainError(error), "error");
+          }
+
+          log("Network switch: " + explainError(error));
+        }
+      }
+
+      // ==========================================================
+      // CHECK CONTRACT CONNECTION
+      // ==========================================================
+
+      async function checkContract() {
+        try {
+          requireSepolia();
+          await ensureSepolia();
+
+          const code = await provider.getCode(CONTRACT_ADDRESS);
+
+          if (code === "0x") {
+            throw new Error(
+              "No contract bytecode found at this address on Sepolia.",
+            );
+          }
+
+          showStatus(
+            "contractStatus",
+            "Contract address contains deployed bytecode on Sepolia.",
+            "success",
+          );
+
+          log("Contract bytecode verified.");
+        } catch (error) {
+          showStatus("contractStatus", explainError(error), "error");
+          log("Contract check failed: " + explainError(error));
+        }
+      }
+
+      // ==========================================================
+      // VALIDATION HELPERS
+      // ==========================================================
+
+      function readDrugId(id) {
+        const value = $(id).value.trim();
+
+        if (!/^[1-9]\d*$/.test(value)) {
+          throw new Error("Enter a positive whole-number drug ID.");
+        }
+
+        return BigInt(value);
+      }
+
+      function readAddress(id) {
+        const value = $(id).value.trim();
+
+        if (!ethers.isAddress(value)) {
+          throw new Error("Enter a valid Ethereum wallet address.");
+        }
+
+        return value;
+      }
+
+      function readExpiryTimestamp(id) {
+        const value = $(id).value;
+
+        if (!value) {
+          throw new Error("Select the drug expiry date.");
+        }
+
+        // Use noon UTC on the selected date to avoid a date-boundary issue.
+        const timestamp = Math.floor(Date.parse(value + "T12:00:00Z") / 1000);
+
+        if (
+          !Number.isFinite(timestamp) ||
+          timestamp <= Math.floor(Date.now() / 1000)
+        ) {
+          throw new Error("Expiry date must be in the future.");
+        }
+
+        return BigInt(timestamp);
+      }
+
+      async function sendTransaction(resultId, action) {
+        try {
+          requireSepolia();
+          await ensureSepolia();
+
+          showResult(resultId, "Preparing transaction...");
+
+          const tx = await action();
+
+          showResult(
+            resultId,
+            `Transaction submitted.\nHash: ${tx.hash}\nWaiting for confirmation...`,
+          );
+
+          log("Transaction submitted: " + tx.hash);
+
+          const receipt = await tx.wait();
+
+          if (!receipt || receipt.status !== 1) {
+            throw new Error("Transaction did not succeed.");
+          }
+
+          showResult(
+            resultId,
+            `Transaction confirmed!\nHash: ${tx.hash}\nBlock: ${receipt.blockNumber}\nStatus: Success`,
+            "success",
+          );
+
+          log("Transaction confirmed in block " + receipt.blockNumber);
+
+          await refreshWalletDetails();
+        } catch (error) {
+          const message = explainError(error);
+          showResult(resultId, "Transaction failed: " + message, "error");
+          log("Transaction error: " + message);
+        }
+      }
+
+      // ==========================================================
+      // CONTRACT WRITE OPERATIONS
+      // ==========================================================
+
+      $("manufactureBtn").addEventListener("click", async () => {
+        try {
+          const id = readDrugId("drugId");
+          const name = $("drugName").value.trim();
+          const expiry = readExpiryTimestamp("expiryDate");
+
+          if (!name || name.length > 100) {
+            throw new Error("Enter a drug name between 1 and 100 characters.");
+          }
+
+          await sendTransaction("manufactureResult", () =>
+            contract.manufactureDrug(id, name, expiry),
+          );
+        } catch (error) {
+          showResult("manufactureResult", explainError(error), "error");
+        }
+      });
+
+      $("distributorBtn").addEventListener("click", async () => {
+        try {
+          const id = readDrugId("distDrugId");
+          const address = readAddress("distributorAddress");
+
+          await sendTransaction("distributorResult", () =>
+            contract.sendToDistributor(id, address),
+          );
+        } catch (error) {
+          showResult("distributorResult", explainError(error), "error");
+        }
+      });
+
+      $("retailerBtn").addEventListener("click", async () => {
+        try {
+          const id = readDrugId("retailDrugId");
+          const address = readAddress("retailerAddress");
+
+          await sendTransaction("retailerResult", () =>
+            contract.sendToRetailer(id, address),
+          );
+        } catch (error) {
+          showResult("retailerResult", explainError(error), "error");
+        }
+      });
+
+      $("sellBtn").addEventListener("click", async () => {
+        try {
+          const id = readDrugId("saleDrugId");
+          const address = readAddress("customerAddress");
+
+          await sendTransaction("sellResult", () =>
+            contract.sellToCustomer(id, address),
+          );
+        } catch (error) {
+          showResult("sellResult", explainError(error), "error");
+        }
+      });
+
+      // ==========================================================
+      // READ DRUG DETAILS
+      // ==========================================================
+
+      $("lookupBtn").addEventListener("click", async () => {
+        try {
+          requireSepolia();
+          await ensureSepolia();
+
+          const id = readDrugId("lookupDrugId");
+
+          const drug = await contract.getDrug(id);
+
+          const stages = [
+            "Manufactured",
+            "WithDistributor",
+            "WithRetailer",
+            "Sold",
+          ];
+
+          const stageIndex = Number(drug.stage);
+
+          const output =
+            `Drug ID: ${drug.drugID.toString()}\n` +
+            `Name: ${drug.name}\n` +
+            `Expiry timestamp: ${drug.expiryDate.toString()}\n` +
+            `Expiry date: ${new Date(
+              Number(drug.expiryDate) * 1000,
+            ).toLocaleString()}\n` +
+            `Manufacturer: ${drug.manufacturer}\n` +
+            `Distributor: ${drug.distributor}\n` +
+            `Retailer: ${drug.retailer}\n` +
+            `Customer: ${drug.customer}\n` +
+            `Stage: ${stages[stageIndex] ?? stageIndex}\n` +
+            `Last updated: ${new Date(
+              Number(drug.lastUpdated) * 1000,
+            ).toLocaleString()}`;
+
+          showResult("lookupResult", output, "success");
+          log("Retrieved drug " + id.toString());
+        } catch (error) {
+          showResult("lookupResult", explainError(error), "error");
+          log("Read error: " + explainError(error));
+        }
+      });
+
+      // ==========================================================
+      // EVENT LISTENERS
+      // ==========================================================
+
+      $("connectBtn").addEventListener("click", connectWallet);
+      $("switchBtn").addEventListener("click", switchToSepolia);
+      $("checkContractBtn").addEventListener("click", checkContract);
+
+      if (window.ethereum) {
+        window.ethereum.on("accountsChanged", async (accounts) => {
+          connectedAccount = accounts[0] || null;
+
+          if (!connectedAccount) {
+            provider = null;
+            signer = null;
+            contract = null;
+
+            showStatus("walletStatus", "Wallet disconnected.");
+            showStatus("networkStatus", "Network not checked.");
+            showStatus("balanceStatus", "Balance not loaded.");
+            showStatus(
+              "contractStatus",
+              "Connect wallet to initialize contract.",
+            );
+            log("Wallet access removed.");
+            return;
+          }
+
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+
+          try {
+            validateContractConfig();
+            contract = new ethers.Contract(
+              CONTRACT_ADDRESS,
+              CONTRACT_ABI,
+              signer,
+            );
+
+            showStatus(
+              "walletStatus",
+              `Connected wallet: ${connectedAccount}`,
+              "success",
+            );
+
+            await refreshWalletDetails();
+            log("Wallet account changed.");
+          } catch (error) {
+            showStatus("contractStatus", explainError(error), "error");
+          }
+        });
+
+        window.ethereum.on("chainChanged", () => {
+          // Reinitialize against the selected network.
+          window.location.reload();
+        });
+      }
+    </script>
+  </body>
+</html>
